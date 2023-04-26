@@ -1,0 +1,116 @@
+import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_database/firebase_database.dart';
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+      //Add your own config here get it by creating new web app on firebase console
+      options: const FirebaseOptions(
+          apiKey: "",
+          appId: "",
+          messagingSenderId: "",
+          projectId: "",
+          databaseURL: ""));
+  runApp(const MyApp());
+}
+
+class MyApp extends StatefulWidget {
+  const MyApp({super.key});
+
+  @override
+  // ignore: library_private_types_in_public_api
+  _MyAppState createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  final databaseReference = FirebaseDatabase.instance.ref();
+
+  String _name = '';
+  String _email = '';
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      home: Scaffold(
+        appBar: AppBar(
+          title: const Text('Firebase Realtime Database Example'),
+        ),
+        body: SingleChildScrollView(
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(20.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  TextField(
+                    decoration: const InputDecoration(
+                      hintText: 'Enter Name',
+                    ),
+                    onChanged: (value) {
+                      setState(() {
+                        _name = value;
+                      });
+                    },
+                  ),
+                  TextField(
+                    decoration: const InputDecoration(
+                      hintText: 'Enter Email',
+                    ),
+                    onChanged: (value) {
+                      setState(() {
+                        _email = value;
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 20),
+                  ElevatedButton(
+                    onPressed: () {
+                      databaseReference.child('users').push().set({
+                        'name': _name,
+                        'email': _email,
+                      });
+                    },
+                    child: const Text('Submit'),
+                  ),
+                  const SizedBox(height: 20),
+                  StreamBuilder(
+                    stream: databaseReference.child('/users').onValue,
+                    builder: (context, snapshot) {
+                      if (!snapshot.hasData ||
+                          snapshot.data!.snapshot.value == null) {
+                        return const Text('No data found');
+                      } else {
+                        Map<dynamic, dynamic> values = snapshot
+                            .data!.snapshot.value as Map<dynamic, dynamic>;
+                        List<dynamic> users = values.values.toList();
+
+                        return ListView.builder(
+                          shrinkWrap: true,
+                          itemCount: users.length,
+                          itemBuilder: (context, index) {
+                            return Column(
+                              children: [
+                                Text(
+                                  'Name: ${users[index]['name']}',
+                                ),
+                                Text(
+                                  'Email: ${users[index]['email']}',
+                                ),
+                                const SizedBox(height: 20),
+                              ],
+                            );
+                          },
+                        );
+                      }
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
